@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #endif
 
+#include "include.h"
 int cond=1;
 
 void stop_handler(int signum)
@@ -74,6 +75,7 @@ int sound_init(int format)
 
 int main(int argc, char*argv[])
 {
+	// const int payload_type = 0;
 	RtpSession *session;
 	unsigned char buffer[160];
 	int err;
@@ -151,7 +153,8 @@ int main(int argc, char*argv[])
 	rtp_session_set_symmetric_rtp(session,TRUE);
 	rtp_session_enable_adaptive_jitter_compensation(session,adapt);
 	rtp_session_set_jitter_compensation(session,jittcomp);
-	rtp_session_set_payload_type(session,0);
+	rtp_session_set_payload_type(session,payload_type);
+	// rtp_session_set_payload_type(session,0);
 	rtp_session_signal_connect(session,"ssrc_changed",(RtpCallback)ssrc_cb,0);
 	rtp_session_signal_connect(session,"ssrc_changed",(RtpCallback)rtp_session_reset,0);
 	

@@ -332,9 +332,11 @@ void msgappend(mblk_t *mp, const char *data, size_t size, bool_t pad){
 }
 
 mblk_t *concatb(mblk_t *mp, mblk_t *newm){
-	while (mp->b_cont!=NULL) mp=mp->b_cont;
+	while (mp->b_cont!=NULL) 
+		mp=mp->b_cont;
 	mp->b_cont=newm;
-	while(newm->b_cont!=NULL) newm=newm->b_cont;
+	while(newm->b_cont!=NULL) 
+		newm=newm->b_cont;
 	return newm;
 }
 

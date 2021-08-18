@@ -21,6 +21,8 @@
 #include <signal.h>
 #include <stdlib.h>
 
+#include "include.h"
+
 #ifndef _WIN32 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -38,6 +40,7 @@ static const char *help="usage: rtpsend	filename dest_ip4addr dest_port [ --with
 
 int main(int argc, char *argv[])
 {
+	// const int payload_type = 0;
 	RtpSession *session;
 	unsigned char buffer[160];
 	int i;
@@ -79,7 +82,7 @@ int main(int argc, char *argv[])
 	rtp_session_set_blocking_mode(session,1);
 	rtp_session_set_connected_mode(session,TRUE);
 	rtp_session_set_remote_addr(session,argv[2],atoi(argv[3]));
-	rtp_session_set_payload_type(session,0);
+	rtp_session_set_payload_type(session,payload_type);
 	
 	ssrc=getenv("SSRC");
 	if (ssrc!=NULL) {

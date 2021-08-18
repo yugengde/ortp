@@ -33,3 +33,5 @@ stamp-h1
 compile
 git-clang-format.diff
 *.DS_Store
+.vs/
+out

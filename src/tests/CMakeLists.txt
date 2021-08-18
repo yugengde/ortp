@@ -21,6 +21,7 @@
 ############################################################################
 
 if (NOT IOS)
+	# 可执行的测试程序
 	set(EXECUTABLES rtpsend rtprecv mrtpsend mrtprecv test_timer tevrtpsend tevrtprecv rtpsend_stupid)
 	foreach(executable ${EXECUTABLES})
 		bc_apply_compile_flags(${executable}.c STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
