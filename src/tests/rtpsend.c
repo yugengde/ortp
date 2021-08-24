@@ -27,6 +27,8 @@
 #include <stdio.h>
 #endif
 
+#include "include.h"
+
 int runcond=1;
 
 void stophandler(int signum)
@@ -79,7 +81,7 @@ int main(int argc, char *argv[])
 	rtp_session_set_blocking_mode(session,1);
 	rtp_session_set_connected_mode(session,TRUE);
 	rtp_session_set_remote_addr(session,argv[2],atoi(argv[3]));
-	rtp_session_set_payload_type(session,0);
+	rtp_session_set_payload_type(session,payload_type);
 	
 	ssrc=getenv("SSRC");
 	if (ssrc!=NULL) {

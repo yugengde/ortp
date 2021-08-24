@@ -354,6 +354,7 @@ void _rtp_session_apply_socket_sizes(RtpSession * session){
  *	Returns: 0 on success.
 **/
 
+// 设置本地rtp数据监听地址
 int
 rtp_session_set_local_addr (RtpSession * session, const char * addr, int rtp_port, int rtcp_port)
 {
@@ -1838,7 +1839,7 @@ static void rtp_process_incoming_packet(RtpSession * session, mblk_t * mp, bool_
 		}
 		/* then parse the message and put on jitter buffer queue */
 		update_recv_bytes(&session->rtp.gs, (size_t)(mp->b_wptr - mp->b_rptr), &mp->timestamp);
-		rtp_session_rtp_parse(session, mp, user_ts, remaddr,addrlen);
+		rtp_session_rtp_parse(session, mp, user_ts, remaddr,addrlen); // rtp包解析
 		/*for bandwidth measurements:*/
 	}else {
 		if (session->use_connect && session->symmetric_rtp && !sock_connected){
@@ -1869,7 +1870,7 @@ void rtp_session_process_incoming(RtpSession * session, mblk_t *mp, bool_t is_rt
 		mp = rtp_session_network_simulate(session, mp, &is_rtp_packet);
 		if (mp) rtp_process_incoming_packet(session, mp, is_rtp_packet, ts, received_via_rtcp_mux); /*BUG here: received_via_rtcp_mux is not preserved by network simulator*/
 	} else if (mp != NULL) {
-		rtp_process_incoming_packet(session, mp, is_rtp_packet, ts, received_via_rtcp_mux);
+		rtp_process_incoming_packet(session, mp, is_rtp_packet, ts, received_via_rtcp_mux);  // 接受rtp包
 	}
 }
 
@@ -2010,7 +2011,7 @@ int rtp_session_rtp_recv (RtpSession * session, uint32_t user_ts) {
 
 		if (mp != NULL) {
 			mp->reserved1 = user_ts;
-			rtp_session_process_incoming(session, mp, packet_is_rtp, user_ts, !packet_is_rtp);
+			rtp_session_process_incoming(session, mp, packet_is_rtp, user_ts, !packet_is_rtp); // 接受rtp包
 		} else {
 			rtp_session_process_incoming(session, NULL, packet_is_rtp, user_ts, FALSE);
 			return -1;

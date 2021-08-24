@@ -31,7 +31,7 @@
 extern "C"{
 #endif
 
-#define RTP_PROFILE_MAX_PAYLOADS 128
+#define RTP_PROFILE_MAX_PAYLOADS 128 // 有效负载条目
 
 /**
  * The RTP profile is a table RTP_PROFILE_MAX_PAYLOADS entries to make the matching
@@ -40,8 +40,8 @@ extern "C"{
 **/
 struct _RtpProfile
 {
-	char *name;
-	PayloadType *payload[RTP_PROFILE_MAX_PAYLOADS];
+	char *name;  // 文件名
+	PayloadType *payload[RTP_PROFILE_MAX_PAYLOADS];  // 负载类型
 };
 
 

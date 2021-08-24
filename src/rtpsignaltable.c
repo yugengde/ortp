@@ -47,6 +47,7 @@ int rtp_signal_table_add(RtpSignalTable *table,RtpCallback cb, void *user_data)
 }
 
 
+// º¯ÊýÊý×é
 void rtp_signal_table_emit(RtpSignalTable *table)
 {
 	int i,c;

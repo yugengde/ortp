@@ -222,33 +222,44 @@ mblk_t *rtp_getq_permissive(queue_t *q,uint32_t timestamp, int *rejected)
 	return ret;
 }
 
-
+/*
+ * 执行rtp会话的一些必要的初始化工作
+ *	session： rtp会话结构体，含有一些rtp会话的基本信息
+ *  mode：   传输模式，有以下几种，决定本会话的一些特性
+ */
 void
 rtp_session_init (RtpSession * session, int mode)
 {
-	JBParameters jbp;
+	JBParameters jbp;  // 抖动缓冲参数
 	if (session == NULL)
 	{
 		ortp_debug("rtp_session_init: Invalid paramter (session=NULL)");
 		return;
 	}
-	memset (session, 0, sizeof (RtpSession));
-	ortp_mutex_init(&session->main_mutex, NULL);
+	// sizeof : 返回一个对象或者类型所占的内存字节数
+	memset (session, 0, sizeof (RtpSession));  // sizeof(RtpSession) = 4928
+	ortp_mutex_init(&session->main_mutex, NULL);  // 互斥量
 	session->mode = (RtpSessionMode) mode;
-	if ((mode == RTP_SESSION_RECVONLY) || (mode == RTP_SESSION_SENDRECV))
+	if ((mode == RTP_SESSION_RECVONLY) || (mode == RTP_SESSION_SENDRECV)) // recv
 	{
-		rtp_session_set_flag (session, RTP_SESSION_RECV_SYNC);
-		rtp_session_set_flag (session, RTP_SESSION_RECV_NOT_STARTED);
+		//  根据传输模式设置标志变量的值
+		rtp_session_set_flag (session, RTP_SESSION_RECV_SYNC);  // recv: rtp_session_recv_sync
+		rtp_session_set_flag (session, RTP_SESSION_RECV_NOT_STARTED);  // recv: rtp_session_recv_not_started
 
 	}
-	if ((mode == RTP_SESSION_SENDONLY) || (mode == RTP_SESSION_SENDRECV))
+	if ((mode == RTP_SESSION_SENDONLY) || (mode == RTP_SESSION_SENDRECV))  // send
 	{
-		rtp_session_set_flag (session, RTP_SESSION_SEND_NOT_STARTED);
+		//  根据传输模式设置标志变量的值
+
+		rtp_session_set_flag (session, RTP_SESSION_SEND_NOT_STARTED); // send: rtp_session_send_not_started
+		// 随机产生SSRC
 		session->snd.ssrc=uint32_t_random();
 		/* set default source description */
+		// 同步源描述信息
 		rtp_session_set_source_description(session,"unknown@unknown",NULL,NULL,
 				NULL,NULL,"oRTP-" ORTP_VERSION,NULL);
 	}
+	// 传入全局的av_profile，即使用默认的profile配置
 	rtp_session_set_profile (session, &av_profile); /*the default profile to work with */
 	session->rtp.gs.socket=-1;
 	session->rtcp.gs.socket=-1;
@@ -402,6 +413,9 @@ rtp_session_new (int mode)
  *
  *
 **/
+/*
+ *  RtpScheduler管理多个session的调度和收发的控制，本函数设置是否使用该session调度管理功能。
+ */
 void
 rtp_session_set_scheduling_mode (RtpSession * session, int yesno)
 {
@@ -635,6 +649,7 @@ void rtp_session_set_rtp_socket_recv_buffer_size(RtpSession * session, unsigned 
  * @param user_data	a pointer to any data to be passed when invoking the callback.
  *
 **/
+// 本函数提供一种方式，用于通知应用程序各种可能发生的RTP事件（信号）。可能通过注册回调函数的形式来实现本功能
 int
 rtp_session_signal_connect (RtpSession * session, const char *signal_name,
 				RtpCallback cb, void *user_data)
@@ -659,6 +674,7 @@ rtp_session_signal_connect (RtpSession * session, const char *signal_name,
  * @param cb	a callback function.
  * @return: 0 on success, a negative value if the callback was not found.
 **/
+// 要取消事件（信号）的监听，可以使用下面这个函数
 int
 rtp_session_signal_disconnect_by_callback (RtpSession * session, const char *signal_name,
 					   RtpCallback cb)
@@ -770,6 +786,7 @@ void rtp_session_update_payload_type(RtpSession *session, int paytype){
  * @return 0 on success, -1 if the payload is not defined.
 **/
 
+// 设置RTP发送数据的负载类型
 int
 rtp_session_set_send_payload_type (RtpSession * session, int paytype)
 {
@@ -874,10 +891,11 @@ static void rtp_header_init_from_session(rtp_header_t *rtp, RtpSession *session)
  *@param payload_size size of data carried by the rtp packet.
  *@return a rtp packet in a mblk_t (message block) structure.
 **/
+// 封包
 mblk_t * rtp_session_create_packet(RtpSession *session,size_t header_size, const uint8_t *payload, size_t payload_size)
 {
 	mblk_t *mp;
-	size_t msglen=header_size+payload_size;
+	size_t msglen=header_size+payload_size;  // 消息长度
 	rtp_header_t *rtp;
 
 	mp=allocb(msglen,BPRI_MED);
@@ -1058,11 +1076,7 @@ ORTP_PUBLIC int __rtp_session_sendm_with_ts (RtpSession * session, mblk_t *mp, u
 	if (session->flags & RTP_SESSION_SCHEDULED)
 	{
 		wait_point_lock(&session->snd.wp);
-		packet_time =
-			rtp_session_ts_to_time (session,
-					 send_ts -
-					 session->rtp.snd_ts_offset) +
-					session->rtp.snd_time_offset;
+		packet_time = rtp_session_ts_to_time (session,send_ts - session->rtp.snd_ts_offset) + session->rtp.snd_time_offset;
 		/*ortp_message("rtp_session_send_with_ts: packet_time=%i time=%i",packet_time,sched->time_);*/
 		if (TIME_IS_STRICTLY_NEWER_THAN (packet_time, sched->time_))
 		{
@@ -1110,7 +1124,7 @@ ORTP_PUBLIC int __rtp_session_sendm_with_ts (RtpSession * session, mblk_t *mp, u
 	}
 
 	while (session->duplication_left>=1.f) {
-		error = rtp_session_rtp_send (session, copymsg(mp));
+		error = rtp_session_rtp_send (session, copymsg(mp));  // 发送数据包
 		session->duplication_left -= 1.f;
 	}
 	error = rtp_session_rtp_send (session, mp);
@@ -1153,6 +1167,33 @@ int rtp_session_sendm_with_ts(RtpSession *session, mblk_t *packet, uint32_t time
  *@param userts	the timestamp of the data to be sent. Refer to the rfc to know what it is.
  *@return the number of bytes sent over the network.
 **/
+// 发送RTP数据包
+// 同样，rtp_session_send_with_ts()也会一直阻塞直到需要被发送的RTP包的时间点到达，发送结束后，函数才返回
+
+/*
+参数含义：
+
+session： rtp会话结构体
+
+buffer： 需要发送的RTP数据的缓冲区
+
+len：    需要发送的RTP数据的长度
+
+userts： 本RTP数据包的时间戳
+
+返回值： 成功发送到网络中的字节数
+
+说明：
+
+发送RTP数据需要自己管理时间戳的递增，每调用一次本函数，请根据实际情况对userts进行递增，具体递增的规则见RTP协议中的说明。
+
+例如：如果发送的是采样率为90000Hz的视频数据包，每秒25帧，则时间戳的增量为：90000/25 = 3600
+
+时间戳的起始值为随机值，建议设置为0 。
+*
+*/
+ 
+
 int
 rtp_session_send_with_ts (RtpSession * session, const uint8_t * buffer, int len,
 			  uint32_t userts)
@@ -1288,8 +1329,8 @@ rtp_session_recvm_with_ts (RtpSession * session, uint32_t user_ts)
 	}
 	session->rtp.rcv_last_app_ts = user_ts;
 	if (read_socket){
-		rtp_session_rtp_recv (session, user_ts);
-		rtp_session_rtcp_recv(session);
+		rtp_session_rtp_recv (session, user_ts);  // 接受rtp包
+		rtp_session_rtcp_recv(session);  // 接受rtcp包
 	}
 	/* check for telephone event first */
 	mp=getq(&session->rtp.tev_rq);
@@ -1452,6 +1493,21 @@ rtp_session_recvm_with_ts (RtpSession * session, uint32_t user_ts)
  *@param have_more the address of an integer to indicate if more data is availlable for the given timestamp.
  *
 **/
+
+// 接收RTP数据包
+// 如果启用了阻塞模式，则rtp_session_recv_with_ts()会一直阻塞直到接收RTP包的时间点到达
+
+/*
+session： rtp会话结构体
+
+buffer： 存放接收的RTP数据的缓冲区
+
+len：    期望接收的RTP数据的长度
+
+time：   期望接收的RTP数据的时间戳
+
+have_more：标识接收缓冲区是否还有数据没有传递完。当用户给出的缓冲区不够大时，为了标识缓冲区数据未取完，则have_more指向的数据为1，期望用户以同样的时间戳再次调用本函数；否则为0，标识取完。
+*/
 int rtp_session_recv_with_ts (RtpSession * session, uint8_t * buffer,
 				   int len, uint32_t ts, int * have_more){
 	mblk_t *mp=NULL;
@@ -1462,7 +1518,7 @@ int rtp_session_recv_with_ts (RtpSession * session, uint8_t * buffer,
 			mp=session->pending;
 			session->pending=NULL;
 		}else {
-			mp=rtp_session_recvm_with_ts(session,ts);
+			mp=rtp_session_recvm_with_ts(session,ts);  // 接受数据包
 			if (mp!=NULL) rtp_get_payload(mp,&mp->b_rptr);
 		}
 		if (mp){
@@ -2053,6 +2109,7 @@ float rtp_session_get_round_trip_propagation(RtpSession *session){
  *
  * @param session a rtp session.
 **/
+// 摧毁rtp会话对象，释放资源
 void rtp_session_destroy (RtpSession * session)
 {
 	rtp_session_uninit (session);

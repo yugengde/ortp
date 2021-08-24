@@ -26,11 +26,11 @@ typedef void (*RtpCallback)(struct _RtpSession *, void *arg1, void *arg2, void *
 
 struct _RtpSignalTable
 {
-	RtpCallback callback[RTP_CALLBACK_TABLE_MAX_ENTRIES];
+	RtpCallback callback[RTP_CALLBACK_TABLE_MAX_ENTRIES];  // 回调函数
 	void * user_data[RTP_CALLBACK_TABLE_MAX_ENTRIES];
 	struct _RtpSession *session;
 	const char *signal_name;
-	int count;
+	int count;  // 信号的数量
 };
 
 typedef struct _RtpSignalTable RtpSignalTable;

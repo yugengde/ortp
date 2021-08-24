@@ -28,6 +28,8 @@
 #include <sys/types.h>
 #endif
 
+#include "include.h"
+
 int cond=1;
 
 void stop_handler(int signum)
@@ -144,6 +146,8 @@ int main(int argc, char*argv[])
 	ortp_set_log_level_mask(NULL, ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR);
 	signal(SIGINT,stop_handler);
 	session=rtp_session_new(RTP_SESSION_RECVONLY);	
+	// new add
+	rtp_session_enable_rtcp(session, FALSE);
 	rtp_session_set_scheduling_mode(session,1);
 	rtp_session_set_blocking_mode(session,1);
 	rtp_session_set_local_addr(session,"0.0.0.0",atoi(argv[2]),-1);
@@ -151,7 +155,7 @@ int main(int argc, char*argv[])
 	rtp_session_set_symmetric_rtp(session,TRUE);
 	rtp_session_enable_adaptive_jitter_compensation(session,adapt);
 	rtp_session_set_jitter_compensation(session,jittcomp);
-	rtp_session_set_payload_type(session,0);
+	rtp_session_set_payload_type(session,payload_type);
 	rtp_session_signal_connect(session,"ssrc_changed",(RtpCallback)ssrc_cb,0);
 	rtp_session_signal_connect(session,"ssrc_changed",(RtpCallback)rtp_session_reset,0);
 	

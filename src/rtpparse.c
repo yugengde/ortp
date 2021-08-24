@@ -169,25 +169,29 @@ static void check_for_seq_number_gap_immediate(RtpSession *session, rtp_header_t
 
 void rtp_session_rtp_parse(RtpSession *session, mblk_t *mp, uint32_t local_str_ts, struct sockaddr *addr, socklen_t addrlen)
 {
+	// rtp 包的解析
+
 	int i;
-	int discarded;
-	int duplicate;
+	int discarded;  // 丢弃
+	int duplicate;  // 重复的
+
 	rtp_header_t *rtp;
-	int msgsize;
-	RtpStream *rtpstream=&session->rtp;
-	rtp_stats_t *stats=&session->stats;
+	int msgsize;  // 消息的大小
 
-	msgsize=(int)(mp->b_wptr-mp->b_rptr);
+	RtpStream *rtpstream=&session->rtp;  // 核心数据结构之一
+	rtp_stats_t *stats=&session->stats;  // 核心数据结构之二
 
-	if (msgsize<RTP_FIXED_HEADER_SIZE){
+	msgsize=(int)(mp->b_wptr - mp->b_rptr);  // 消息的大小： 消息的写地址-读地址
+
+	if (msgsize<RTP_FIXED_HEADER_SIZE){  // 消息大小小于12字节
 		ortp_warning("Packet too small to be a rtp packet (%i)!",msgsize);
 		session->stats.bad++;
 		ortp_global_stats.bad++;
 		freemsg(mp);
 		return;
 	}
-	rtp=(rtp_header_t*)mp->b_rptr;
-	if (rtp->version!=2)
+	rtp=(rtp_header_t*)mp->b_rptr;  // 从读的地址取出头部数据
+	if (rtp->version!=2)  // 如果不是rtp协议的数据
 	{
 		/* try to see if it is a STUN packet */
 		uint16_t stunlen=*((uint16_t*)(mp->b_rptr + sizeof(uint16_t)));
@@ -227,6 +231,8 @@ void rtp_session_rtp_parse(RtpSession *session, mblk_t *mp, uint32_t local_str_t
 	rtp->timestamp=ntohl(rtp->timestamp);
 	rtp->ssrc=ntohl(rtp->ssrc);
 	/* convert csrc if necessary */
+
+	// 确保字节数没有超大小
 	if (rtp->cc*sizeof(uint32_t) > (uint32_t) (msgsize-RTP_FIXED_HEADER_SIZE)){
 		ortp_debug("Receiving too short rtp packet.");
 		stats->bad++;
@@ -240,13 +246,15 @@ void rtp_session_rtp_parse(RtpSession *session, mblk_t *mp, uint32_t local_str_t
 	ortp_gettimeofday(&session->last_recv_time, NULL);
 #endif
 
+	// 处理多个csrc
 	for (i=0;i<rtp->cc;i++)
-		rtp->csrc[i]=ntohl(rtp->csrc[i]);
-	/*the goal of the following code is to lock on an incoming SSRC to avoid
-	receiving "mixed streams"*/
+		rtp->csrc[i]=ntohl(rtp->csrc[i]);  // 贡献源
+
+	/*the goal of the following code is to lock on an incoming SSRC to avoid receiving "mixed streams"*/
 	if (session->ssrc_set){
 		/*the ssrc is set, so we must check it */
-		if (session->rcv.ssrc!=rtp->ssrc){
+		// rcv
+		if (session->rcv.ssrc!=rtp->ssrc){  // 如果当前的ssrc和包中的ssrc不一致
 			if (session->inc_ssrc_candidate==rtp->ssrc){
 				session->inc_same_ssrc_count++;
 			}else{
@@ -255,7 +263,7 @@ void rtp_session_rtp_parse(RtpSession *session, mblk_t *mp, uint32_t local_str_t
 			}
 			if (session->inc_same_ssrc_count>=session->rtp.ssrc_changed_thres){
 				/* store the sender rtp address to do symmetric RTP */
-				rtp_session_update_remote_sock_addr(session,mp,TRUE,FALSE);
+				rtp_session_update_remote_sock_addr(session,mp,TRUE,FALSE); // see last
 				session->rtp.rcv_last_ts = rtp->timestamp;
 				session->rcv.ssrc=rtp->ssrc;
 				rtp_signal_table_emit(&session->on_ssrc_changed);
@@ -275,6 +283,7 @@ void rtp_session_rtp_parse(RtpSession *session, mblk_t *mp, uint32_t local_str_t
 	}else{
 		session->ssrc_set=TRUE;
 		session->rcv.ssrc=rtp->ssrc;
+		// 更新远端sock地址
 		rtp_session_update_remote_sock_addr(session,mp,TRUE,FALSE);
 	}
 

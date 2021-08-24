@@ -60,8 +60,8 @@
 
 typedef int ortp_socket_t;
 typedef pthread_t ortp_thread_t;
-typedef pthread_mutex_t ortp_mutex_t;
-typedef pthread_cond_t ortp_cond_t;
+typedef pthread_mutex_t ortp_mutex_t;  // 线程互斥量
+typedef pthread_cond_t ortp_cond_t;  // 条件变量
 
 #ifdef __INTEL_COMPILER
 #pragma warning(disable : 111)		// statement is unreachable

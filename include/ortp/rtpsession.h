@@ -111,8 +111,8 @@ typedef struct _JitterControl
 
 typedef struct _WaitPoint
 {
-	ortp_mutex_t lock;
-	ortp_cond_t  cond;
+	ortp_mutex_t lock;  // 线程互斥量
+	ortp_cond_t  cond;  // 条件变量
 	uint32_t time;
 	bool_t wakeup;
 } WaitPoint;
@@ -351,14 +351,14 @@ typedef struct _RtpStream
 	uint32_t hwrcv_since_last_SR;
 	uint32_t last_rcv_SR_ts;     /* NTP timestamp (middle 32 bits) of last received SR */
 	struct timeval last_rcv_SR_time;   /* time at which last SR was received  */
-	uint16_t snd_seq; /* send sequence number */
+	uint16_t snd_seq; /* send sequence number */  // 发送序号计数器
 	uint32_t last_rtcp_packet_count; /*the sender's octet count in the last sent RTCP SR*/
-	uint32_t sent_payload_bytes; /*used for RTCP sender reports*/
+	uint32_t sent_payload_bytes; /*used for RTCP sender reports*/  // 有效负载发送流量统计
 	int recv_errno;
 	int send_errno;
 	int snd_socket_size;
 	int rcv_socket_size;
-	int ssrc_changed_thres;
+	int ssrc_changed_thres;  // threshold 阈值
 	jitter_stats_t jitter_stats;
 	struct _OrtpCongestionDetector *congdetect;
 	struct _OrtpVideoBandwidthEstimator *video_bw_estimator;
@@ -386,7 +386,7 @@ typedef struct _RtpSession RtpSession;
 
 
 /**
- * An object representing a bi-directional RTP session.
+ * An object representing a bi-directional RTP session.  // 双向rtp会话
  * It holds sockets, jitter buffer, various counters (timestamp, sequence numbers...)
  * Applications SHOULD NOT try to read things within the RtpSession object but use
  * instead its public API (the rtp_session_* methods) where RtpSession is used as a
@@ -399,12 +399,12 @@ struct _RtpSession
 	RtpSession *next;	/* next RtpSession, when the session are enqueued by the scheduler */
 	int mask_pos;	/* the position in the scheduler mask of RtpSession : do not move this field: it is part of the ABI since the session_set macros use it*/
 	struct {
-		RtpProfile *profile;
-		int pt;
-		unsigned int ssrc;
+		RtpProfile *profile;  // 配置文件
+		int pt;  // 负载类型
+		unsigned int ssrc;  // 同步源标识
 		WaitPoint wp;
 	} snd,rcv;
-	unsigned int inc_ssrc_candidate;
+	unsigned int inc_ssrc_candidate;  // candidate 候选人
 	int inc_same_ssrc_count;
 	int hw_recv_pt; /* recv payload type before jitter buffer */
 	int recv_buf_size;
