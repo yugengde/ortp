@@ -35,3 +35,6 @@ git-clang-format.diff
 *.DS_Store
 .vs/
 out/
+cpp.hint
+src/tests/test_m1.c
+

@@ -113,8 +113,8 @@ typedef struct _WaitPoint
 {
 	ortp_mutex_t lock;  // 线程互斥量
 	ortp_cond_t  cond;  // 条件变量
-	uint32_t time;
-	bool_t wakeup;
+	uint32_t time; // 是用来记录等待的时间点的时间（毫秒），此值记录的时间是和RtpScheduler的time_成员比较的。
+	bool_t wakeup;  // 标志是否在等待唤醒的标志
 } WaitPoint;
 
 typedef struct _RtpTransportModifier
@@ -304,16 +304,19 @@ typedef struct _OrtpStream {
 	int sockfamily;
 	int loc_port;
 	socklen_t rem_addrlen;
-	struct sockaddr_storage rem_addr;
+	struct sockaddr_storage rem_addr;  // 地址
 	socklen_t loc_addrlen;
 	struct sockaddr_storage loc_addr;
 	socklen_t used_loc_addrlen;
 	struct sockaddr_storage used_loc_addr; /*Address used to redirect packets from this source*/
 	struct _RtpTransport *tr;
 	OrtpBwEstimator recv_bw_estimator;
+	// 同上上面两个变量用于计算发送带宽,start记录的开始时间,sent_bytes 记录了发送的字节数,该值没调用 rtp 接口发送数据后都会进行累加更新。记录一次带宽值后,清为零,之后进行下一次带宽估计的计算
 	struct timeval send_bw_start; /* used for bandwidth estimation */
 	struct timeval recv_bw_start; /* used for bandwidth estimation */
+	// 用于带宽评估
 	unsigned int sent_bytes; /* used for bandwidth estimation */
+	// 同上struct timeval recv_bw_start; 同上作用和处理逻辑都同上面发送部分
 	unsigned int recv_bytes; /* used for bandwidth estimation */
 	float upload_bw;
 	float download_bw;
@@ -333,26 +336,47 @@ typedef struct _RtpStream
 	void *QoSHandle;
 	unsigned long QoSFlowID;
 	JitterControl jittctl;
+
+	// 应用程序发送其第一个时间戳时的调度器时间
 	uint32_t snd_time_offset;/*the scheduler time when the application send its first timestamp*/
+	// 被应用程序发送的第一个应用程序时间戳
 	uint32_t snd_ts_offset;	/* the first application timestamp sent by the application */
+	// 添加到用户offset 上的一个随机数,用来产生流的时间戳
 	uint32_t snd_rand_offset;	/* a random number added to the user offset to make the stream timestamp*/
+	// 流上最后发送的时间戳
 	uint32_t snd_last_ts;	/* the last stream timestamp sent */
 	uint16_t snd_last_nack;	/* the last nack sent when in immediate mode */
+	// 应用程序询问其第一个时间戳时的调度时间,这里询问意指获取接收到的数据包—此应该指开始接收数据时的调度器时间
 	uint32_t rcv_time_offset; /*the scheduler time when the application ask for its first timestamp*/
+	// 第一个流的时间戳
 	uint32_t rcv_ts_offset;  /* the first stream timestamp */
+	// 被应用程序询问的第一个user时间戳—此应该指应用接收数据流时的时间
 	uint32_t rcv_query_ts_offset;	/* the first user timestamp asked by the application */
+	// 应用程序得到的流的最后一个时间戳—此应该指应用程序收到的最后一个rtp 包的时间戳,是包里的时间戳值, 而非应用自己的时间
 	uint32_t rcv_last_ts;	/* the last stream timestamp got by the application */
 	uint16_t rcv_last_seq;	/* the last stream sequence number got by the application*/
 	uint16_t pad;
+	// 被应用程序询问的最后一个应用程序时间戳—此处应该指应用收最后一个包时的应用时间,是应用按照 payload 类型及其采样率增长的时间戳记录,不是系统时间,也不是包里的时间
 	uint32_t rcv_last_app_ts; /* the last application timestamp asked by the application */
+	// 最后一个返回的采样的时间戳,仅仅对于连续的音频而言
 	uint32_t rcv_last_ret_ts; /* the timestamp of the last sample returned (only for continuous audio)*/
+
+	// 以下三个变量:hwrcv_extseq, hwrcv_seq_at_last_SR, hwrcv_since_last_SR 可以用于计算丢包率
+	// 在socket 上最后接收的扩展的序列号
 	uint32_t hwrcv_extseq; /* last received on socket extended sequence number */
+	// 每次发送报告包后,该变量更新为hwrcv_extseq,因此是最近发送rtcp 报告包时的最高扩展序列号
 	uint32_t hwrcv_seq_at_last_SR;
+	// 每收到一个 rtp 包,该变量加 1,在 rtcp 报告报构造好后, 该变量就清为零,因此说明这个变量计数的是从上一个报告包以来接收的rtp 包数目
 	uint32_t hwrcv_since_last_SR;
+
+	// 最后一个接收到的 sr 的 NTP 时间戳,取的是中间的 32bit。这个值也是报告包中上 LSR 值的来源
 	uint32_t last_rcv_SR_ts;     /* NTP timestamp (middle 32 bits) of last received SR */
+	// 最后一个 sr 被接收到的时间,这个时间是用系统当前的时间来表示的。这个值记录了接收到最后一个SR时的系统时间,再发送当前报告包时,再次获取系统当前时间,然后二者相减,得到的值乘以65536 得到以1/65536 为单位的时间值
 	struct timeval last_rcv_SR_time;   /* time at which last SR was received  */
+	// 发送序列号
 	uint16_t snd_seq; /* send sequence number */  // 发送序号计数器
 	uint32_t last_rtcp_packet_count; /*the sender's octet count in the last sent RTCP SR*/
+	// 用于rtcp 发送者报告的 payload 字节数,数据来源。这个变量保存了从开始发送到发送这个 rtcp 报告包时发送的字节总数,但不包括头部和填充
 	uint32_t sent_payload_bytes; /*used for RTCP sender reports*/  // 有效负载发送流量统计
 	int recv_errno;
 	int send_errno;
@@ -423,7 +447,7 @@ struct _RtpSession
 	OrtpRtcpXrStats rtcp_xr_stats;
 	RtpSessionMode mode;
 	struct _RtpScheduler *sched;
-	uint32_t flags;
+	uint32_t flags;  // 标示量： 每一位bit都代表一个状态
 	int dscp;
 	int multicast_ttl;
 	int multicast_loopback;
@@ -449,7 +473,7 @@ struct _RtpSession
 	rtp_stats_t stats;
 	bctbx_list_t *recv_addr_map;
 	uint32_t send_ts_offset; /*additional offset to add when sending packets */
-	bool_t symmetric_rtp;
+	bool_t symmetric_rtp; // 对称的
 	bool_t permissive; /*use the permissive algorithm*/
 	bool_t use_connect; /* use connect() on the socket */
 	bool_t ssrc_set;
@@ -794,7 +818,7 @@ ORTP_PUBLIC int rtp_session_unsplice(RtpSession *session, RtpSession *to_session
 ORTP_PUBLIC bool_t ortp_stream_is_ipv6(OrtpStream *os);
 
 /* RtpBundle api */
-typedef struct _RtpBundle RtpBundle;
+typedef struct _RtpBundle RtpBundle;  // ?
 
 ORTP_PUBLIC RtpBundle* rtp_bundle_new(void);
 ORTP_PUBLIC void rtp_bundle_delete(RtpBundle *bundle);

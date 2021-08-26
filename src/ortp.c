@@ -105,6 +105,7 @@ void ortp_scheduler_init()
 	sigprocmask(SIG_BLOCK,&set,NULL);
 #endif /* __hpux */
 
+	// 创建一个 RtpScheduler类型的结构体
 	__ortp_scheduler=rtp_scheduler_new();
 	rtp_scheduler_start(__ortp_scheduler);
 }

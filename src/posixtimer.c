@@ -79,11 +79,12 @@ void posix_timer_uninit(void)
 	posix_timer.state=RTP_TIMER_STOPPED;
 }
 
-RtpTimer posix_timer={	0,
+// 这个posix_timer定时器是唯一可用的定时器，周期为50毫秒，而且贯穿ortp源码也只有这里使用了这个定时器
+RtpTimer posix_timer={	0,  // state
 						posix_timer_init,
 						posix_timer_do,
 						posix_timer_uninit,
-						{0,POSIXTIMER_INTERVAL}};
+						{0,POSIXTIMER_INTERVAL}};  // 秒数，微妙数
 							
 							
 #else //_WIN32

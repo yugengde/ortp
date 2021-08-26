@@ -98,6 +98,8 @@ bool_t wait_point_check(WaitPoint *wp, uint32_t t){
 	}
 	return ok;
 }
+// pthread_cond_signal函数的作用是发送一个信号给另外一个正在处于阻塞等待状态的线程,使其脱离阻塞状态,继续执行.
+// 如果没有线程处在阻塞等待状态, pthread_cond_signal也会成功返回
 #define wait_point_wakeup(wp) ortp_cond_signal(&(wp)->cond);
 
 extern void rtp_parse(RtpSession *session, mblk_t *mp, uint32_t local_str_ts,
@@ -416,6 +418,12 @@ rtp_session_new (int mode)
 /*
  *  RtpScheduler管理多个session的调度和收发的控制，本函数设置是否使用该session调度管理功能。
  */
+/*
+这个函数的作用是设置rtpsession的调度器根据参数，
+如果是true就获取全局唯一的调度器，
+然后设置RTP_SESSION_SCHEDULED标识量并调用rtp_scheduler_add_session。
+否则就取消RTP_SESSION_SCHEDULED标识量。
+*/
 void
 rtp_session_set_scheduling_mode (RtpSession * session, int yesno)
 {
@@ -1294,9 +1302,11 @@ static void check_for_seq_number_gap(RtpSession *session, rtp_header_t *rtp) {
  * @return a rtp packet presented as a mblk_t.
 **/
 
+// 这个函数是ortp库中用来接收数据的函数
 mblk_t *
 rtp_session_recvm_with_ts (RtpSession * session, uint32_t user_ts)
 {
+	// user_ts: 如果接收还没有启动,rcv_query_ts_offset设置为应用给定的初始时间
 	mblk_t *mp = NULL;
 	rtp_header_t *rtp = NULL;
 	uint32_t ts;
@@ -1310,6 +1320,9 @@ rtp_session_recvm_with_ts (RtpSession * session, uint32_t user_ts)
 
 	if (session->flags & RTP_SESSION_RECV_NOT_STARTED)
 	{
+		/* rtp_session_recv_not_started 如果接受还没有启动
+		   rcv_query_ts_offset设置为应用给定的初始时间,也就是应用询问的时间,记录了一个开始时间偏移
+		*/
 		session->rtp.rcv_query_ts_offset = user_ts;
 		/* Set initial last_rcv_time to first recv time. */
 		if ((session->flags & RTP_SESSION_SEND_NOT_STARTED)
@@ -1508,8 +1521,7 @@ time：   期望接收的RTP数据的时间戳
 
 have_more：标识接收缓冲区是否还有数据没有传递完。当用户给出的缓冲区不够大时，为了标识缓冲区数据未取完，则have_more指向的数据为1，期望用户以同样的时间戳再次调用本函数；否则为0，标识取完。
 */
-int rtp_session_recv_with_ts (RtpSession * session, uint8_t * buffer,
-				   int len, uint32_t ts, int * have_more){
+int rtp_session_recv_with_ts (RtpSession * session, uint8_t * buffer,int len, uint32_t ts, int * have_more){
 	mblk_t *mp=NULL;
 	int plen,blen=0;
 	*have_more=0;
@@ -2400,13 +2412,28 @@ uint32_t rtp_session_ts_to_time (RtpSession * session, uint32_t timestamp)
 /* time is the number of miliseconds elapsed since the start of the scheduler */
 void rtp_session_process (RtpSession * session, uint32_t time, RtpScheduler *sched)
 {
-	wait_point_lock(&session->snd.wp);
+	/*
+	这个函数是在调度器的工作函数中处理每一个rtpsession的函数。
+	1. 首先调用wait_point_check函数:  检查发送等待点的时间是否到了，
+		这里用来比较的wp里的时间是在发送函数中计算好的，time是从参数传入的，
+		从rtp_scheduler_schedule函数的介绍中可以看出这个时间是当前时间。
+		如果时间到了那么就在调度器的w_sessions发送集合中将代表这个rtpsession的bit位置1，
+		然后唤醒可能在等待的wp里的条件变量。下面是对接收等待点做同样的工作，不在赘述。
+	*/
+	wait_point_lock(&session->snd.wp);  // lock
 	if (wait_point_check(&session->snd.wp,time)){
+		/*
+		这个函数是用来检查等待点的时间是否到了函数，
+		1. 首先检查这个等待点的wakeup是否是真来决定是否需要被唤醒，
+		2. 然后比较传入的时间是否新于等待点中存储的时间，
+		如果是就代表需要唤醒并且把wakeup置为false防止重复唤醒
+		*/
 		session_set_set(&sched->w_sessions,session);
-		wait_point_wakeup(&session->snd.wp);
+		wait_point_wakeup(&session->snd.wp);  // cond 对比于lock
 	}
 	wait_point_unlock(&session->snd.wp);
 
+	// 跟上面一样，一个是读一个是写
 	wait_point_lock(&session->rcv.wp);
 	if (wait_point_check(&session->rcv.wp,time)){
 		session_set_set(&sched->r_sessions,session);

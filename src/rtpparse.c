@@ -311,6 +311,7 @@ void rtp_session_rtp_parse(RtpSession *session, mblk_t *mp, uint32_t local_str_t
 		session->rtcp_xr_stats.last_rcv_seq=extseq->one;
 	}
 
+	// 如果发现数据包是 telephone event 包,则会创建一个事件,将其发送到事件队列上
 	/* check for possible telephone events */
 	if (rtp_profile_is_telephone_event(session->snd.profile, rtp->paytype)){
 		queue_packet(&session->rtp.tev_rq,session->rtp.jittctl.params.max_packets,mp,rtp,&discarded,&duplicate);
@@ -391,7 +392,7 @@ void rtp_session_rtp_parse(RtpSession *session, mblk_t *mp, uint32_t local_str_t
 		check_for_seq_number_gap_immediate(session, rtp);
 	}
 
-	if (queue_packet(&session->rtp.rq,session->rtp.jittctl.params.max_packets,mp,rtp,&discarded,&duplicate))
+	if (queue_packet(&session->rtp.rq,session->rtp.jittctl.params.max_packets,mp,rtp,&discarded,&duplicate))  // 2021-08-25 11:06
 		jitter_control_update_size(&session->rtp.jittctl,&session->rtp.rq);
 	stats->discarded+=discarded;
 	ortp_global_stats.discarded+=discarded;

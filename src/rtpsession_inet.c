@@ -1839,7 +1839,7 @@ static void rtp_process_incoming_packet(RtpSession * session, mblk_t * mp, bool_
 		}
 		/* then parse the message and put on jitter buffer queue */
 		update_recv_bytes(&session->rtp.gs, (size_t)(mp->b_wptr - mp->b_rptr), &mp->timestamp);
-		rtp_session_rtp_parse(session, mp, user_ts, remaddr,addrlen); // rtp包解析
+		rtp_session_rtp_parse(session, mp, user_ts, remaddr,addrlen); // 对rtp数据包进行解析
 		/*for bandwidth measurements:*/
 	}else {
 		if (session->use_connect && session->symmetric_rtp && !sock_connected){
@@ -2095,7 +2095,11 @@ int rtp_session_rtcp_recv (RtpSession * session) {
 	return error;
 }
 
+// 
 int rtp_session_update_remote_sock_addr(RtpSession * session, mblk_t * mp, bool_t is_rtp,bool_t only_at_start) {
+	// is_rtp TRUE
+	// only_at_start FALSE
+
 	struct sockaddr_storage * rem_addr = NULL;
 	socklen_t *rem_addrlen;
 	const char* socket_type;
@@ -2103,7 +2107,7 @@ int rtp_session_update_remote_sock_addr(RtpSession * session, mblk_t * mp, bool_
 	bool_t do_address_change = /*(rtp_get_version(mp) == 2 && */ !only_at_start;
 
 	if (!rtp_session_get_symmetric_rtp(session))
-		return -1; /*nothing to try if not rtp symetric*/
+		return -1; /*nothing to try if not rtp symetric*/ // symetric: 对称的
 
 	if (session->bundle && !session->is_primary){
 		/* A session part of a bundle not owning the transport layer shall not update remote address.*/

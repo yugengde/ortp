@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2019 Belledonne Communications SARL.
  *
  * This file is part of oRTP.
@@ -32,11 +32,12 @@ void rtp_scheduler_init(RtpScheduler *sched)
 	sched->time_=0;
 	/* default to the posix timer */
 #if !defined(ORTP_WINDOWS_UNIVERSAL)
+	// 这个posix_timer定时器是唯一可用的定时器
 	rtp_scheduler_set_timer(sched,&posix_timer);
 #endif
 	ortp_mutex_init(&sched->lock,NULL);
 	ortp_cond_init(&sched->unblock_select_cond,NULL);
-	sched->max_sessions=sizeof(SessionSet)*8;
+	sched->max_sessions=sizeof(SessionSet)*8;  //  1024   : sizeof(SessionSet) = 128 bytes
 	session_set_init(&sched->all_sessions);
 	sched->all_max=0;
 	session_set_init(&sched->r_sessions);
@@ -51,6 +52,7 @@ RtpScheduler * rtp_scheduler_new()
 {
 	RtpScheduler *sched=(RtpScheduler *) ortp_malloc(sizeof(RtpScheduler));
 	memset(sched,0,sizeof(RtpScheduler));
+	// 调用 rtp_scheduler_init 初始化
 	rtp_scheduler_init(sched);
 	return sched;
 }
@@ -62,7 +64,7 @@ void rtp_scheduler_set_timer(RtpScheduler *sched,RtpTimer *timer)
 		return;
 	}
 	sched->timer=timer;
-	/* report the timer increment */
+	/* report the timer increment */  // 10000/1000 + 0*1000 = 10usec
 	sched->timer_inc=(timer->interval.tv_usec/1000) + (timer->interval.tv_sec*1000);
 }
 
@@ -71,6 +73,8 @@ void rtp_scheduler_start(RtpScheduler *sched)
 	if (sched->thread_running==0){
 		sched->thread_running=1;
 		ortp_mutex_lock(&sched->lock);
+
+		// 执行线程 调度线程
 		ortp_thread_create(&sched->thread, NULL, rtp_scheduler_schedule,(void*)sched);
 		ortp_cond_wait(&sched->unblock_select_cond,&sched->lock);
 		ortp_mutex_unlock(&sched->lock);
@@ -99,6 +103,15 @@ void rtp_scheduler_destroy(RtpScheduler *sched)
 
 void * rtp_scheduler_schedule(void * psched)
 {
+	/*
+	这个函数是调度器的工作函数，
+	其主要任务就是检查是否有rtpsession到了需要唤醒的时间并更新相应session集合的状态。
+
+	1. 首先启动定时器，然后遍历调度器上存储rtpsession的链表，
+		对每个rtpsession调用rtp_session_process这个处理函数，
+	2. 然后用条件变量唤醒所有可能在等待的select。
+	3. 最后调用定时器的等待函数睡眠并更新运行时间。
+	*/
 	RtpScheduler *sched=(RtpScheduler*) psched;
 	RtpTimer *timer=sched->timer;
 	RtpSession *current;
@@ -115,14 +128,19 @@ void * rtp_scheduler_schedule(void * psched)
 		ortp_mutex_lock(&sched->lock);
 		
 		current=sched->list;
+
+
 		/* processing all scheduled rtp sessions */
+
+		// 遍历scheduler上注册的所有会话、 如果不为空, 说明应用有会话需要调度管理
 		while (current!=NULL)
 		{
 			ortp_debug("scheduler: processing session=0x%p.\n",current);
-			rtp_session_process(current,sched->time_,sched);
+			// 调用 rtp_session_process 函数进行处理当前的会话  
+			rtp_session_process(current,sched->time_,sched); // ❆❆❆❆❆❆❆❆❆❆❆❆❆❆❆❆❆❆❆❆❆
 			current=current->next;
 		}
-		/* wake up all the threads that are sleeping in _select()  */
+		/* wake up all the threads that are sleeping in _select()  */  // 唤醒所有在select上的线程
 		ortp_cond_broadcast(&sched->unblock_select_cond);
 		ortp_mutex_unlock(&sched->lock);
 		
@@ -130,7 +148,7 @@ void * rtp_scheduler_schedule(void * psched)
 		result mask and see if they have to leave, or to wait for next tick*/
 		//ortp_message("scheduler: sleeping.");
 		timer->timer_do();
-		sched->time_+=sched->timer_inc;
+		sched->time_+=sched->timer_inc;  // 每一次递增10usec
 	}
 	/* when leaving the thread, stop the timer */
 	timer->timer_uninit();
@@ -141,7 +159,7 @@ void rtp_scheduler_add_session(RtpScheduler *sched, RtpSession *session)
 {
 	RtpSession *oldfirst;
 	int i;
-	if (session->flags & RTP_SESSION_IN_SCHEDULER){
+	if (session->flags & RTP_SESSION_IN_SCHEDULER){  // 该已经存在于调度的进程中
 		/* the rtp session is already scheduled, so return silently */
 		return;
 	}

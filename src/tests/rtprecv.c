@@ -79,7 +79,7 @@ int main(int argc, char*argv[])
 	RtpSession *session;
 	unsigned char buffer[160];
 	int err;
-	uint32_t ts=0;
+	uint32_t ts=0;  // 应用给定的初始时间
 	int stream_received=0;
 	FILE *outfile;
 	int local_port;
@@ -163,6 +163,7 @@ int main(int argc, char*argv[])
 	{
 		have_more=1;
 		while (have_more){
+			// 应用给定的初始时间 ts = 0
 			err=rtp_session_recv_with_ts(session,buffer,160,ts,&have_more);
 			if (err>0) stream_received=1;
 			/* this is to avoid to write to disk some silence before the first RTP packet is returned*/	

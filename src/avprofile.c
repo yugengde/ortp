@@ -82,7 +82,7 @@ char offset0[4] = {0x00, 0x00, 0x00, 0x00};
 #endif
 
 PayloadType payload_type_pcmu8000={
-	TYPE(PAYLOAD_AUDIO_CONTINUOUS),
+	TYPE(PAYLOAD_AUDIO_CONTINUOUS),  // payload_audio_continuous
 	CLOCK_RATE(8000),
 	BITS_PER_SAMPLE(8),
 	ZERO_PATTERN( &offset127),

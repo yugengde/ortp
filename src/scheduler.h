@@ -27,8 +27,9 @@
 
 struct _RtpScheduler {
  
+	// 参与调度的会话
 	RtpSession *list;	/* list of scheduled sessions*/
-	SessionSet	all_sessions;  /* mask of scheduled sessions */
+	SessionSet	all_sessions;  /* mask of scheduled sessions */  // 做多只要1024个session
 	int		all_max;		/* the highest pos in the all mask */
 	SessionSet  r_sessions;		/* mask of sessions that have a recv event */
 	int		r_max;

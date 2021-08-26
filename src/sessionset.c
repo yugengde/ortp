@@ -56,6 +56,7 @@ int count_power_items_simple(uint32_t v)
 	return c;
 }
 
+// 这个函数是用来检测一个4字节的数据上有多少个bit位被置1
 int count_power_items_fast(uint32_t v)
 {
 	int c = 0;
@@ -66,6 +67,7 @@ int count_power_items_fast(uint32_t v)
 	return c;
 }
 
+// 检测两个SessionSet之间有多少个相同的bit位都被置为1
 int session_set_and(SessionSet *sched_set, int maxs, SessionSet *user_set, SessionSet *result_set)
 {
 	uint32_t *mask1,*mask2,*mask3;
@@ -110,6 +112,7 @@ int session_set_and(SessionSet *sched_set, int maxs, SessionSet *user_set, Sessi
  * @param errors a set of rtp sessions to be watched for errors
  * @return: the number of sessions on which the selected events happened.
 **/
+// 调度器模块关键函数，模仿了SOCKET的select，参数也模仿了select，有接收（读）、发送（写）、错误集合
 int session_set_select(SessionSet *recvs, SessionSet *sends, SessionSet *errors)
 {
 	int ret=0,bits;
@@ -161,6 +164,7 @@ int session_set_select(SessionSet *recvs, SessionSet *sends, SessionSet *errors)
 	return -1;
 }
 
+// 这个函数和上一个函数的作用一样，唯一的区别就是上一个函数如果没找到结果就会一直循环，而此函数可以传入一个代表时间长度的参数，如果寻找过程超过这个时长还没找到结果那么就会返回。
 int session_set_timedselect(SessionSet *recvs, SessionSet *sends, SessionSet *errors,  struct timeval *timeout)
 {
 	int ret=0,bits;
