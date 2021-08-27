@@ -245,6 +245,7 @@ rtp_session_init (RtpSession * session, int mode)
 	if ((mode == RTP_SESSION_RECVONLY) || (mode == RTP_SESSION_SENDRECV)) // recv
 	{
 		//  根据传输模式设置标志变量的值
+		// 设置session的状态
 		rtp_session_set_flag (session, RTP_SESSION_RECV_SYNC);  // recv: rtp_session_recv_sync
 		rtp_session_set_flag (session, RTP_SESSION_RECV_NOT_STARTED);  // recv: rtp_session_recv_not_started
 
@@ -272,9 +273,9 @@ rtp_session_init (RtpSession * session, int mode)
 	session->rtp.snd_socket_size=session->rtp.rcv_socket_size=65536;
 #endif
 	session->rtp.ssrc_changed_thres=50;
-	session->dscp=RTP_DEFAULT_DSCP;
-	session->multicast_ttl=RTP_DEFAULT_MULTICAST_TTL;
-	session->multicast_loopback=RTP_DEFAULT_MULTICAST_LOOPBACK;
+	session->dscp=RTP_DEFAULT_DSCP;  // 0x00
+	session->multicast_ttl=RTP_DEFAULT_MULTICAST_TTL;  // hops = 5
+	session->multicast_loopback=RTP_DEFAULT_MULTICAST_LOOPBACK;  // 0
 	qinit(&session->rtp.rq);
 	qinit(&session->rtp.tev_rq);
 	qinit(&session->rtp.winrq);
@@ -2420,7 +2421,7 @@ void rtp_session_process (RtpSession * session, uint32_t time, RtpScheduler *sch
 		如果时间到了那么就在调度器的w_sessions发送集合中将代表这个rtpsession的bit位置1，
 		然后唤醒可能在等待的wp里的条件变量。下面是对接收等待点做同样的工作，不在赘述。
 	*/
-	wait_point_lock(&session->snd.wp);  // lock
+	wait_point_lock(&session->snd.wp);  // lock  加锁
 	if (wait_point_check(&session->snd.wp,time)){
 		/*
 		这个函数是用来检查等待点的时间是否到了函数，
@@ -2429,9 +2430,9 @@ void rtp_session_process (RtpSession * session, uint32_t time, RtpScheduler *sch
 		如果是就代表需要唤醒并且把wakeup置为false防止重复唤醒
 		*/
 		session_set_set(&sched->w_sessions,session);
-		wait_point_wakeup(&session->snd.wp);  // cond 对比于lock
+		wait_point_wakeup(&session->snd.wp);  // 发送信号
 	}
-	wait_point_unlock(&session->snd.wp);
+	wait_point_unlock(&session->snd.wp);  // 释放锁
 
 	// 跟上面一样，一个是读一个是写
 	wait_point_lock(&session->rcv.wp);

@@ -34,3 +34,5 @@ rm /tmp/recvfile && /root/.vs/ortp/b93efca9-1cc6-46d6-b1d6-68e41fd4fb5c/out/buil
 
 [ortp π”√œÍΩ‚2](https://www.cnblogs.com/elisha-blogs/p/4029413.html)
 
+[Jitter buffer](https://www.pianshen.com/article/2992516241/)
+

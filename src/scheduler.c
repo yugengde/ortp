@@ -35,8 +35,9 @@ void rtp_scheduler_init(RtpScheduler *sched)
 	// 这个posix_timer定时器是唯一可用的定时器
 	rtp_scheduler_set_timer(sched,&posix_timer);
 #endif
-	ortp_mutex_init(&sched->lock,NULL);
-	ortp_cond_init(&sched->unblock_select_cond,NULL);
+	ortp_mutex_init(&sched->lock,NULL);  // 初始化互斥量  mutex: 调度器锁
+	ortp_cond_init(&sched->unblock_select_cond,NULL);  // 初始化条件变量
+
 	sched->max_sessions=sizeof(SessionSet)*8;  //  1024   : sizeof(SessionSet) = 128 bytes
 	session_set_init(&sched->all_sessions);
 	sched->all_max=0;
@@ -72,12 +73,12 @@ void rtp_scheduler_start(RtpScheduler *sched)
 {
 	if (sched->thread_running==0){
 		sched->thread_running=1;
-		ortp_mutex_lock(&sched->lock);
+		ortp_mutex_lock(&sched->lock);  // 加调度器锁
 
 		// 执行线程 调度线程
 		ortp_thread_create(&sched->thread, NULL, rtp_scheduler_schedule,(void*)sched);
-		ortp_cond_wait(&sched->unblock_select_cond,&sched->lock);
-		ortp_mutex_unlock(&sched->lock);
+		ortp_cond_wait(&sched->unblock_select_cond,&sched->lock);  // 加锁成功、等待条件变量触发
+		ortp_mutex_unlock(&sched->lock);   // 释放调度器锁
 	}
 	else ortp_warning("Scheduler thread already running.");
 

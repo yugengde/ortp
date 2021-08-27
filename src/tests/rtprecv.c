@@ -145,7 +145,7 @@ int main(int argc, char*argv[])
 	ortp_scheduler_init();
 	ortp_set_log_level_mask(NULL, ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR);
 	signal(SIGINT,stop_handler);
-	session=rtp_session_new(RTP_SESSION_RECVONLY);	
+	session=rtp_session_new(RTP_SESSION_RECVONLY);	// ÄÚ²¿ºÜ¸´ÔÓ!!!
 	// new add
 	rtp_session_enable_rtcp(session, FALSE);
 	rtp_session_set_scheduling_mode(session,1);

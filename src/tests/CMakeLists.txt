@@ -28,6 +28,13 @@ if (NOT IOS)
 		target_link_libraries(${executable} ortp ${BCTOOLBOX_CORE_LIBRARIES})
 	endforeach()
 
+	set(EXECUTABLES_O test_m2 test_m3 test_m4)
+	foreach(executable ${EXECUTABLES_O})
+		bc_apply_compile_flags(${executable}.c STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
+		add_executable(${executable} ${executable}.c)
+		target_link_libraries(${executable} pthread)
+	endforeach()
+
 	install(TARGETS ${EXECUTABLES}
                 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE

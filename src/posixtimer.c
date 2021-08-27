@@ -36,7 +36,7 @@
 
 
 static struct timeval orig,cur;
-static uint32_t posix_timer_time=0;		/*in milisecond */
+static uint32_t posix_timer_time=0;		/*in milisecond */  // 毫秒
 
 void posix_timer_init(void)
 {
@@ -53,7 +53,7 @@ void posix_timer_do(void)
 	int diff,time;
 	struct timeval tv;
 	ortp_gettimeofday(&cur,NULL);
-	time=((cur.tv_usec-orig.tv_usec)/1000 ) + ((cur.tv_sec-orig.tv_sec)*1000 );
+	time=((cur.tv_usec-orig.tv_usec)/1000 ) + ((cur.tv_sec-orig.tv_sec)*1000 );  // 计算 cur 和 orig 之间的毫秒差
 	if ( (diff=time-posix_timer_time)>50){
 		ortp_warning("Must catchup %i miliseconds.",diff);
 	}
@@ -70,7 +70,7 @@ void posix_timer_do(void)
 		ortp_gettimeofday(&cur,NULL);
 		time=((cur.tv_usec-orig.tv_usec)/1000 ) + ((cur.tv_sec-orig.tv_sec)*1000 );
 	}
-	posix_timer_time+=POSIXTIMER_INTERVAL/1000;
+	posix_timer_time+=POSIXTIMER_INTERVAL/1000;  // posix_timer_time 自增 10毫秒
 	
 }
 
@@ -84,7 +84,7 @@ RtpTimer posix_timer={	0,  // state
 						posix_timer_init,
 						posix_timer_do,
 						posix_timer_uninit,
-						{0,POSIXTIMER_INTERVAL}};  // 秒数，微妙数
+						{0,POSIXTIMER_INTERVAL}};  // 秒数，微妙数     POSIXTIMER_INTERVAL 10000
 							
 							
 #else //_WIN32
