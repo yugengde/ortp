@@ -32,7 +32,7 @@ void *producer(void *arg) {
 		printf("----producered----%d\n", temp->num);
 
 		pthread_mutex_unlock(&mutex);
-		pthread_cond_signal(&has_producer);
+		pthread_cond_signal(&has_producer);  // 等待条件被其他程序触发
 		usleep(rand() % 3000);
 	}
 

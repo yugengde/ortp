@@ -83,7 +83,7 @@ char offset0[4] = {0x00, 0x00, 0x00, 0x00};
 
 PayloadType payload_type_pcmu8000={
 	TYPE(PAYLOAD_AUDIO_CONTINUOUS),  // payload_audio_continuous
-	CLOCK_RATE(8000),
+	CLOCK_RATE(8000),  // ²ÉÑùÂÊ
 	BITS_PER_SAMPLE(8),
 	ZERO_PATTERN( &offset127),
 	PATTERN_LENGTH(1),
@@ -472,6 +472,7 @@ void av_profile_init(RtpProfile *profile)
 	rtp_profile_set_payload(profile,31,&payload_type_h261);
 	rtp_profile_set_payload(profile,32,&payload_type_mpv);
 	rtp_profile_set_payload(profile,34,&payload_type_h263);
+	rtp_profile_set_payload(profile,96,&payload_type_h264);
 
 }
 

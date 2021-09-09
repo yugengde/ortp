@@ -168,12 +168,12 @@ mblk_t *rtp_getq(queue_t *q,uint32_t timestamp, int *rejected)
 	}
 	/* return the packet with ts just equal or older than the asked timestamp */
 	/* packets with older timestamps are discarded */
-	while ((tmp=qfirst(q))!=NULL)
+	while ((tmp=qfirst(q))!=NULL)  // 返回时间大于或者等于timestamp的数据包
 	{
-		tmprtp=(rtp_header_t*)tmp->b_rptr;
+		tmprtp=(rtp_header_t*)tmp->b_rptr;  // 优先级:  先计算tmp->b_rptr  再计算 (rtp_header_t *)
 		ortp_debug("rtp_getq: Seeing packet with ts=%i",tmprtp->timestamp);
 
-		if ( RTP_TIMESTAMP_IS_NEWER_THAN(timestamp,tmprtp->timestamp) )
+		if ( RTP_TIMESTAMP_IS_NEWER_THAN(timestamp,tmprtp->timestamp) ) // 7900640 7900800
 		{
 			if (ret!=NULL && tmprtp->timestamp==ts_found) {
 				/* we've found two packets with same timestamp. return the first one */
@@ -909,7 +909,7 @@ mblk_t * rtp_session_create_packet(RtpSession *session,size_t header_size, const
 
 	mp=allocb(msglen,BPRI_MED);
 	rtp=(rtp_header_t*)mp->b_rptr;
-	rtp_header_init_from_session(rtp,session);
+	rtp_header_init_from_session(rtp,session);  // payload是在这个地方改掉的
 	mp->b_wptr+=header_size;
 
 	/*add the mid from the bundle if any*/
@@ -1319,11 +1319,12 @@ rtp_session_recvm_with_ts (RtpSession * session, uint32_t user_ts)
 	/* if we are scheduled, remember the scheduler time at which the application has
 	 * asked for its first timestamp */
 
-	if (session->flags & RTP_SESSION_RECV_NOT_STARTED)
+	if (session->flags & RTP_SESSION_RECV_NOT_STARTED)  // ******[0]1110  & 1 << 4
 	{
 		/* rtp_session_recv_not_started 如果接受还没有启动
 		   rcv_query_ts_offset设置为应用给定的初始时间,也就是应用询问的时间,记录了一个开始时间偏移
 		*/
+		printf("1. 如果rtp接受还没有开始: 将rtp接受时间设置为: user_ts= %d", user_ts);
 		session->rtp.rcv_query_ts_offset = user_ts;
 		/* Set initial last_rcv_time to first recv time. */
 		if ((session->flags & RTP_SESSION_SEND_NOT_STARTED)
@@ -1338,7 +1339,7 @@ rtp_session_recvm_with_ts (RtpSession * session, uint32_t user_ts)
 	}else{
 		/*prevent reading from the sockets when two
 		consecutives calls for a same timestamp*/
-		if (user_ts==session->rtp.rcv_last_app_ts)
+		if (user_ts==session->rtp.rcv_last_app_ts)  // user_ts =  0x140  rtp.rcv_last_app_ts = 0x140
 			read_socket=FALSE;
 	}
 	session->rtp.rcv_last_app_ts = user_ts;
@@ -1347,7 +1348,7 @@ rtp_session_recvm_with_ts (RtpSession * session, uint32_t user_ts)
 		rtp_session_rtcp_recv(session);  // 接受rtcp包
 	}
 	/* check for telephone event first */
-	mp=getq(&session->rtp.tev_rq);
+	mp=getq(&session->rtp.tev_rq); // mq == NULL
 	if (mp!=NULL){
 		size_t msgsize=msgdsize(mp);
 		ortp_global_stats.recv += msgsize;
@@ -1362,7 +1363,7 @@ rtp_session_recvm_with_ts (RtpSession * session, uint32_t user_ts)
 	/* first condition: if the session is starting, don't return anything
 	 * until the queue size reaches jitt_comp */
 
-	if (session->flags & RTP_SESSION_RECV_SYNC)
+	if (session->flags & RTP_SESSION_RECV_SYNC)  // ****000[0] & 1
 	{
 		queue_t *q = &session->rtp.rq;
 		if (qempty(q))
@@ -1379,7 +1380,7 @@ rtp_session_recvm_with_ts (RtpSession * session, uint32_t user_ts)
 	}
 
 	/*calculate the stream timestamp from the user timestamp */
-	ts = jitter_control_get_compensated_timestamp(&session->rtp.jittctl,user_ts);
+	ts = jitter_control_get_compensated_timestamp(&session->rtp.jittctl,user_ts);  // ts: 0x788de0
 	if (session->rtp.jittctl.params.enabled==TRUE){
 		if (session->permissive)
 			mp = rtp_getq_permissive(&session->rtp.rq, ts,&rejected);
@@ -1523,7 +1524,7 @@ time：   期望接收的RTP数据的时间戳
 have_more：标识接收缓冲区是否还有数据没有传递完。当用户给出的缓冲区不够大时，为了标识缓冲区数据未取完，则have_more指向的数据为1，期望用户以同样的时间戳再次调用本函数；否则为0，标识取完。
 */
 int rtp_session_recv_with_ts (RtpSession * session, uint8_t * buffer,int len, uint32_t ts, int * have_more){
-	mblk_t *mp=NULL;
+	mblk_t *mp=NULL;  // 定义一个mblk_t数据结构
 	int plen,blen=0;
 	*have_more=0;
 	while(1){
@@ -1531,12 +1532,13 @@ int rtp_session_recv_with_ts (RtpSession * session, uint8_t * buffer,int len, ui
 			mp=session->pending;
 			session->pending=NULL;
 		}else {
-			mp=rtp_session_recvm_with_ts(session,ts);  // 接受数据包
+			mp=rtp_session_recvm_with_ts(session,ts); 
 			if (mp!=NULL) rtp_get_payload(mp,&mp->b_rptr);
 		}
 		if (mp){
 			plen=(int)(mp->b_wptr-mp->b_rptr);
-			if (plen<=len){
+			if (plen<=len){  // 如果xx数据长度小于 160（期待的）的长度
+				// 从源source所指的内存地址的起始位置开始拷贝n个字节到目标destin所指的内存地址的起始位置中: buffer是目的
 				memcpy(buffer,mp->b_rptr,plen);
 				buffer+=plen;
 				blen+=plen;

@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 {
 	RtpSession *session[STREAMS_COUNT];
 	unsigned char *buffer;
-	int packet_size=160;
+	int packet_size=160;  // 包的大小
 	int ts_inc=160;
 	int i;
 	FILE *infile;

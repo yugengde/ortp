@@ -72,17 +72,17 @@ struct _PayloadTypeAvpfParams {
 
 struct _OrtpPayloadType
 {
-	int type; /**< one of PAYLOAD_* macros*/
-	int clock_rate; /**< rtp clock rate*/
-	char bits_per_sample;	/* in case of continuous audio data */
-	char *zero_pattern;
-	int pattern_length;
-	/* other useful information for the application*/
-	int normal_bitrate;	/*in bit/s */
-	char *mime_type; /**<actually the submime, ex: pcm, pcma, gsm*/
-	int channels; /**< number of channels of audio */
-	char *recv_fmtp; /* various format parameters for the incoming stream */
-	char *send_fmtp; /* various format parameters for the outgoing stream */
+	int type; /**< one of PAYLOAD_* macros*/						 // 类型
+	int clock_rate; /**< rtp clock rate*/							 // 采样率
+	char bits_per_sample;	/* in case of continuous audio data */   // 每个sampe的大小
+	char *zero_pattern;												 // 零模式
+	int pattern_length;												 // 模式长度
+	/* other useful information for the application*/				
+	int normal_bitrate;	/*in bit/s */								 // 普通位率
+	char *mime_type; /**<actually the submime, ex: pcm, pcma, gsm*/  // 媒体类型
+	int channels; /**< number of channels of audio */				 // 通道数
+	char *recv_fmtp; /* various format parameters for the incoming stream */   // 接受格式化参数
+	char *send_fmtp; /* various format parameters for the outgoing stream */   // 发送格式化参数
 	struct _PayloadTypeAvpfParams avpf; /* AVPF parameters */
 	int flags;
 	void *user_data;

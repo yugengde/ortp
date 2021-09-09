@@ -164,21 +164,24 @@ int main(int argc, char*argv[])
 		have_more=1;
 		while (have_more){
 			// 应用给定的初始时间 ts = 0
-			err=rtp_session_recv_with_ts(session,buffer,160,ts,&have_more);
+			err=rtp_session_recv_with_ts(session,buffer,160,ts,&have_more);  //
 			if (err>0) stream_received=1;
 			/* this is to avoid to write to disk some silence before the first RTP packet is returned*/	
 			if ((stream_received) && (err>0)) {
-				size_t ret = fwrite(buffer,1,err,outfile);
+				printf("recving data \n size = %d\n", err);
+				size_t ret = fwrite(buffer,1,err,outfile);  // 将buffer中的一个字节写入到outfile文件中
 				if (sound_fd>0){
-					ret = write(sound_fd,buffer,err);
+					ret = write(sound_fd,buffer,err);  // 将buffer中err个字节写入到音频设备中
 					if (ret==-1){
 						fprintf(stderr,"write to sound card failed (%s)",strerror(errno));
 					}
 				}
+			} else {
+				// printf("no data \n");
 			}
 		}
-		ts+=160;
-		//ortp_message("Receiving packet.");
+		ts+=160;  // 160个样本构成了一个数据块(也就是20ms的语音数据)， 一个数据块就是一个rtp数据包
+		ortp_message("Receiving packet.");
 	}
 	
 	rtp_session_destroy(session);

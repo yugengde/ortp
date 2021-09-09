@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	for(i=4;i<argc;i++){
-		if (strcmp(argv[i],"--with-clockslide")==0){
+		if (strcmp(argv[i],"--with-clockslide")==0){  // 设置 clock slide
 			i++;
 			if (i>=argc) {
 				printf("%s", help);
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 			}
 			clockslide=atoi(argv[i]);
 			ortp_message("Using clockslide of %i milisecond every 50 packets.",clockslide);
-		}else if (strcmp(argv[i],"--with-jitter")==0){
+		}else if (strcmp(argv[i],"--with-jitter")==0){   // 设置 jitter
 			ortp_message("Jitter will be added to outgoing stream.");
 			i++;
 			if (i>=argc) {
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 	signal(SIGINT,stophandler);
 	while( ((i=fread(buffer,1,160,infile))>0) && (runcond) )
 	{
-		rtp_session_send_with_ts(session,buffer,i,user_ts);
+		rtp_session_send_with_ts(session,buffer,i,user_ts);  // 发送一次20ms的数据, 数据的大小刚好是160个字节
 		user_ts+=160;
 		if (clockslide!=0 && user_ts%(160*50)==0){
 			ortp_message("Clock sliding of %i miliseconds now",clockslide);

@@ -28,11 +28,18 @@ if (NOT IOS)
 		target_link_libraries(${executable} ortp ${BCTOOLBOX_CORE_LIBRARIES})
 	endforeach()
 
-	set(EXECUTABLES_O test_m2 test_m3 test_m4)
+	set(EXECUTABLES_O test_m2 test_m3 test_m4 test_m5 test_fwrite)
 	foreach(executable ${EXECUTABLES_O})
 		bc_apply_compile_flags(${executable}.c STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 		add_executable(${executable} ${executable}.c)
 		target_link_libraries(${executable} pthread)
+	endforeach()
+
+	set(EXECUTABLES_O_RTP rtp_rr)
+	foreach(executable ${EXECUTABLES_O_RTP})
+		bc_apply_compile_flags(${executable}.c STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
+		add_executable(${executable} ${executable}.c)
+		target_link_libraries(${executable} pcap)
 	endforeach()
 
 	install(TARGETS ${EXECUTABLES}
