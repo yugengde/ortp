@@ -325,6 +325,11 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 #define SIZE_RTP 12;
 	rtp_hdr = (struct rtp_header*)(packet + SIZE_ETHERNET + size_ip + size_udp);
 
+	if (rtp_hdr->paytype >= 72 && rtp_hdr <= 76) {
+	
+		printf("rtcp协议");
+	}
+
 	printf("Number of cc: %d\n", rtp_hdr->cc);
 	printf("Number of x: %d\n", rtp_hdr->extbit);
 	printf("Number of p: %d\n", rtp_hdr->padbit);
@@ -349,12 +354,16 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 		// 开始写文件
 		start_write = 1;
 	}
+	start_write = 1;
 
 	// 将数据写入到文件中
 	// start_write == 1 && rtp_hdr->paytype == 9
 	if (start_write == 1) {
 		int ret = fwrite(payload, 1, 160, outfile);
-		printf("write file");
+		printf("write file\n");
+		// 160 字节 20ms
+		// 50*160=8000字节=8k  1s
+		// 160k 20s
 	}
 	// sleep(1);
 	// sleep(1);
@@ -381,11 +390,59 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 return;
 }
 
-int main(int argc, char **argv)
+static const char *help = "usage: rtp_rr expr save_file num_packets";
+
+int main(int argc, char *argv[])
 {
+	// 1. 过滤器
+	// char filter_exp[] = "udp src portrange 1025-65535 && src host 18955666655.phone.com";
+	char filter_exp[] = {0};
+	// 2. 保存文件名
+	// char *filename = "rr_recv_gsm__1111.wav";
+	char *filename;
+	// 3. 制定的包大小
+
+	// int num_packets=5;
+	int num_packets;
+
+	/*
+		1.  源IP地址
+		2.  目的IP地址
+		3.  具体协议
+		4.  端口
+	*/
+
+	// 获取命令行参数
+	if (argc < 3) {
+	
+		printf("%s", help);
+		return -1;
+	}
+
+	int i ;
+	for (i = 0; i < argc; i++) {
+		printf("%d:%s\n", i, argv[i]);
+		if (i == 1) {
+			strcpy(filter_exp, argv[i]);
+		}
+		if (i == 2) {
+			// filename = argv[i];
+			// strcpy(filename, argv[i]);
+			filename = argv[i];
+		}
+		if (i == 3) {
+		
+			num_packets = atoi(argv[i]);
+		}
+	}
+
+	printf("filter_exp = %s", filter_exp);
+	printf(" num_packets = %d", num_packets);
+	printf("filename = %s", filename);
+
+
 	start_write = 0;
 
-	char *filename = "rr_recv_gsm__1111.wav";
 	outfile = fopen(filename, "wb");
 	if (outfile == NULL) {
 
@@ -396,6 +453,10 @@ int main(int argc, char **argv)
 		printf("open file \n");
 	}
 
+
+
+
+
 	char *dev = NULL;			/* capture device name */
 	char errbuf[PCAP_ERRBUF_SIZE];		/* error buffer */
 	pcap_t *handle;				/* packet capture handle */
@@ -404,17 +465,18 @@ int main(int argc, char **argv)
 	// char filter_exp[] = "udp src portrange 1025-65535 && src host 18833555533.phone.com";
 	// char filter_exp[] = "udp port 7788";
 	// char filter_exp[] = "udp src portrange 1025-65535 && src host 18955666688.linphone.com";
-	char filter_exp[] = "udp src portrange 1025-65535 && src host 18955666655.phone.com";
+
 
 
 	struct bpf_program fp;			/* compiled filter program (expression) */
 	bpf_u_int32 mask;			/* subnet mask */
 	bpf_u_int32 net;			/* ip */
-	int num_packets = 1000;			/* number of packets to capture */
+	// int num_packets = 1000;			/* number of packets to capture */
 
 	print_app_banner();
 
 	/* check for capture device name on command-line */
+	/*
 	if (argc == 2) {
 		dev = argv[1];
 	}
@@ -424,13 +486,21 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	else {
-		/* find a capture device if not specified on command-line */
+		// * find a capture device if not specified on command-line
 		dev = pcap_lookupdev(errbuf);
 		if (dev == NULL) {
 			fprintf(stderr, "Couldn't find default device: %s\n",
 			    errbuf);
 			exit(EXIT_FAILURE);
 		}
+	}
+	*/
+
+	dev = pcap_lookupdev(errbuf);
+	if (dev == NULL) {
+		fprintf(stderr, "Couldn't find default device: %s\n",
+			errbuf);
+		exit(EXIT_FAILURE);
 	}
 
 	/* get network number and mask associated with capture device */
